@@ -25,7 +25,7 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-            ~ ~/.cache/ms-playwright
+            ~/.cache/ms-playwright
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -35,22 +35,27 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install chromium
 
-      # 🔄 【已修改】这里把原本的 Gost 换成了 Hysteria 2
       - name: 设置代理隧道 (Hysteria 2)
         env:
           HY2_JSON: ${{ secrets.PROXY_SERVER }}
         run: |
-          # 下载官方最新版 hysteria 核心
-          wget -qO hysteria https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-amd64
+          # 1. 下载 hysteria 官方核心
+          wget -q -O hysteria https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-amd64
           chmod +x hysteria
           
-          # 将你在 GitHub Secrets 填写的 HY2 配置写入本地文件
+          # 2. 将配置写入本地文件
           echo "$HY2_JSON" > hy2_config.json
           
-          # 在后台运行 hy2 客户端，并监听本地 1080 端口转换为 socks5 代理
-          nohup ./hysteria socks5 -c hy2_config.json --listen 127.0.0.1:1080 > hy2.log 2>&1 &
-          sleep 5
-          cat hy2.log || true
+          # 3. 后台启动 hysteria 并将日志实时写入 hy2.log
+          ./hysteria socks5 -c hy2_config.json --listen 127.0.0.1:1080 > hy2.log 2>&1 &
+          
+          # 4. 等待 4 秒确保建立连接
+          sleep 4
+          
+          # 5. 打印输出日志，方便在面板上排查 hy2 连接状态
+          echo "=== Hysteria 2 启动日志 ==="
+          cat hy2.log
+          echo "=========================="
 
       - name: 🎲 定时任务基础上随机延迟（0-119秒）
         run: |
