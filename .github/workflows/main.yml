@@ -46,11 +46,12 @@ jobs:
           # 2. 将原配置存入临时文件
           echo "$HY2_JSON" > temp_config.json
           
-          # 3. 动态注入本地 socks5 监听端口（将 1080 端口写入 inbounds）
-          jq '.inbounds = [{"type": "socks5", "listen": "127.0.0.1:1080"}]' temp_config.json > hy2_config.json
+          # 3. 动态注入模式 (mode) 和本地 socks5 监听端口 (inbounds)
+          # 完美解决新版内核严格校验导致的 FATAL no mode specified 报错
+          jq '.mode = "client" | .inbounds = [{"type": "socks5", "listen": "127.0.0.1:1080"}]' temp_config.json > hy2_config.json
           
-          # 4. 使用标准 client 模式在后台启动
-          ./hysteria client -c hy2_config.json > hy2.log 2>&1 &
+          # 4. 根据缝合好的完整配置在后台启动
+          ./hysteria -c hy2_config.json > hy2.log 2>&1 &
           
           # 5. 等待 4 秒确保建立连接
           sleep 4
@@ -94,6 +95,4 @@ jobs:
           if git diff --cached --quiet; then
             echo "无变化，无需提交"
           else
-            git commit -m "⏱️ 更新时间文件: $(date +'%Y-%m-%d %H:%M:%S')"
-            git push origin HEAD:main
-          fi
+            git commit -m "⏱️ 更新时间文件: $(date +'%Y-%
