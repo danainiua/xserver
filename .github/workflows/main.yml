@@ -25,7 +25,7 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-            ~/.cache/ms-playwright
+            ~ ~/.cache/ms-playwright
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -35,16 +35,22 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install chromium
 
-      - name: 设置代理隧道 (Gost)
+      # 🔄 【已修改】这里把原本的 Gost 换成了 Hysteria 2
+      - name: 设置代理隧道 (Hysteria 2)
         env:
-          PROXY_STR: ${{ secrets.PROXY_SERVER }}
+          HY2_JSON: ${{ secrets.PROXY_SERVER }}
         run: |
-          wget -q https://github.com/ginuerzh/gost/releases/download/v2.11.5/gost-linux-amd64-2.11.5.gz
-          gunzip gost-linux-amd64-2.11.5.gz
-          chmod +x gost-linux-amd64-2.11.5
-          nohup ./gost-linux-amd64-2.11.5 -L :1080 -F "$PROXY_STR" > gost.log 2>&1 &
+          # 下载官方最新版 hysteria 核心
+          wget -qO hysteria https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-amd64
+          chmod +x hysteria
+          
+          # 将你在 GitHub Secrets 填写的 HY2 配置写入本地文件
+          echo "$HY2_JSON" > hy2_config.json
+          
+          # 在后台运行 hy2 客户端，并监听本地 1080 端口转换为 socks5 代理
+          nohup ./hysteria socks5 -c hy2_config.json --listen 127.0.0.1:1080 > hy2.log 2>&1 &
           sleep 5
-          cat gost.log || true
+          cat hy2.log || true
 
       - name: 🎲 定时任务基础上随机延迟（0-119秒）
         run: |
